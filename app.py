@@ -4,9 +4,9 @@ from PIL import Image
 from transformers import ViTImageProcessor, ViTForImageClassification
 
 
-# ============================================================
-# PAGE CONFIG
-# ============================================================
+# --------------------------------------------------
+# PAGE CONFIGURATION
+# --------------------------------------------------
 
 st.set_page_config(
     page_title="Crop Doctor AI",
@@ -15,103 +15,21 @@ st.set_page_config(
 )
 
 
-# ============================================================
-# HEADER
-# ============================================================
+# --------------------------------------------------
+# TITLE
+# --------------------------------------------------
 
 st.title("🌱 Crop Doctor AI")
 
 st.write(
-    "AI-powered preliminary crop disease screening "
-    "using image analysis."
+    "Upload or capture a crop image for preliminary "
+    "plant-health screening."
 )
 
 
-# ============================================================
-# PROBLEM
-# ============================================================
-
-with st.expander("⚠️ Problem", expanded=True):
-
-    st.write(
-        """
-        Farmers may find it difficult to identify crop diseases
-        at an early stage. Disease symptoms can look similar,
-        and getting immediate access to agricultural experts
-        may not always be possible.
-
-        Late identification of crop diseases can lead to crop
-        damage, reduced yield and economic loss.
-        """
-    )
-
-
-# ============================================================
-# SOLUTION
-# ============================================================
-
-with st.expander("💡 Solution", expanded=True):
-
-    st.write(
-        """
-        Crop Doctor AI provides a simple AI-based preliminary
-        screening system.
-
-        Users can capture a crop image using their mobile camera
-        or upload an existing image. The AI model analyzes the
-        image and identifies the predicted plant-health class
-        along with a confidence score.
-
-        The system provides the result in English or Tamil and
-        recommends consulting an agricultural expert for
-        confirmation.
-        """
-    )
-
-
-# ============================================================
-# HOW IT WORKS
-# ============================================================
-
-st.subheader("⚙️ How It Works")
-
-st.write(
-    """
-    📷 **1. Capture / Upload**
-    
-    Take a crop photo using the camera or upload an existing image.
-
-    ↓
-
-    🤖 **2. AI Analysis**
-    
-    The Vision Transformer (ViT) model analyzes the crop image.
-
-    ↓
-
-    🔎 **3. Disease Screening**
-    
-    The model predicts the most likely plant-health class.
-
-    ↓
-
-    📊 **4. Confidence**
-    
-    The system displays the prediction confidence.
-
-    ↓
-
-    👨‍🌾 **5. Expert Confirmation**
-    
-    The result is only a preliminary screening. Consult an
-    agricultural expert before taking treatment decisions.
-    """
-)
-
-
-# ============================================================
+# --------------------------------------------------
 # MODEL
-# ============================================================
+# --------------------------------------------------
 
 MODEL_ID = "ayerr/plant-disease-classification"
 
@@ -132,9 +50,9 @@ def load_model():
     return processor, model
 
 
-# ============================================================
-# LOAD MODEL
-# ============================================================
+# --------------------------------------------------
+# LOAD AI MODEL
+# --------------------------------------------------
 
 try:
 
@@ -151,9 +69,9 @@ except Exception as e:
     st.stop()
 
 
-# ============================================================
-# LANGUAGE
-# ============================================================
+# --------------------------------------------------
+# LANGUAGE SELECTION
+# --------------------------------------------------
 
 language = st.radio(
     "Choose Language / மொழியை தேர்வு செய்யவும்",
@@ -162,14 +80,12 @@ language = st.radio(
 )
 
 
-# ============================================================
+# --------------------------------------------------
 # IMAGE SOURCE
-# ============================================================
-
-st.subheader("📷 Crop Image")
+# --------------------------------------------------
 
 input_method = st.radio(
-    "Choose Image Source / படத்தை தேர்வு செய்யவும்",
+    "📷 Choose Image Source / படத்தை தேர்வு செய்யவும்",
     ["Upload Image", "Use Camera"],
     horizontal=True
 )
@@ -178,206 +94,217 @@ input_method = st.radio(
 uploaded_file = None
 
 
-# ============================================================
-# UPLOAD
-# ============================================================
+# --------------------------------------------------
+# UPLOAD IMAGE
+# --------------------------------------------------
 
 if input_method == "Upload Image":
 
     uploaded_file = st.file_uploader(
-        "📁 Upload Crop Image",
+        "📁 Upload Crop Image / பயிர் படத்தை Upload செய்யவும்",
         type=["jpg", "jpeg", "png"]
     )
 
 
-# ============================================================
+# --------------------------------------------------
 # CAMERA
-# ============================================================
+# --------------------------------------------------
 
 else:
 
     uploaded_file = st.camera_input(
-        "📸 Take a photo of the crop"
+        "📸 Take a photo of the crop / பயிரின் புகைப்படத்தை எடுக்கவும்"
     )
 
 
-# ============================================================
-# IMAGE ANALYSIS
-# ============================================================
+# --------------------------------------------------
+# IMAGE PROCESSING
+# --------------------------------------------------
 
 if uploaded_file is not None:
 
-    image = Image.open(
-        uploaded_file
-    ).convert("RGB")
+    try:
+
+        image = Image.open(
+            uploaded_file
+        ).convert("RGB")
+
+        st.image(
+            image,
+            caption="🌱 Crop Image",
+            use_container_width=True
+        )
 
 
-    st.image(
-        image,
-        caption="🌱 Crop Image",
-        use_container_width=True
-    )
+        # --------------------------------------------------
+        # ANALYZE BUTTON
+        # --------------------------------------------------
+
+        if st.button(
+            "🔍 Analyze Crop",
+            type="primary",
+            use_container_width=True
+        ):
+
+            try:
+
+                with st.spinner(
+                    "🔬 Analyzing crop... / பயிரை ஆய்வு செய்கிறது..."
+                ):
+
+                    # Process image
+                    inputs = processor(
+                        images=image,
+                        return_tensors="pt"
+                    )
 
 
-    # ========================================================
-    # ANALYZE
-    # ========================================================
+                    # AI prediction
+                    with torch.no_grad():
 
-    if st.button(
-        "🔍 Analyze Crop",
-        type="primary",
-        use_container_width=True
-    ):
+                        outputs = model(
+                            **inputs
+                        )
 
-        try:
 
-            with st.spinner(
-                "🔬 AI is analyzing the crop..."
-            ):
+                    # Convert logits to probabilities
+                    probabilities = torch.softmax(
+                        outputs.logits,
+                        dim=-1
+                    )
 
-                # Image preprocessing
-                inputs = processor(
-                    images=image,
-                    return_tensors="pt"
+
+                    # Get predicted class
+                    predicted_class = torch.argmax(
+                        probabilities,
+                        dim=-1
+                    ).item()
+
+
+                    # Get label
+                    label = model.config.id2label[
+                        predicted_class
+                    ]
+
+
+                    # Get confidence
+                    confidence = probabilities[
+                        0,
+                        predicted_class
+                    ].item()
+
+
+                # --------------------------------------------------
+                # RESULT
+                # --------------------------------------------------
+
+                st.divider()
+
+                st.subheader(
+                    "🌱 Analysis Result / ஆய்வு முடிவு"
                 )
 
 
-                # AI prediction
-                with torch.no_grad():
-
-                    outputs = model(
-                        **inputs
-                    )
-
-
-                # Probabilities
-                probabilities = torch.softmax(
-                    outputs.logits,
-                    dim=-1
+                # Display detected disease
+                st.write(
+                    f"**Detected Class:** {label}"
                 )
 
 
-                # Predicted class
-                predicted_class = torch.argmax(
-                    probabilities,
-                    dim=-1
-                ).item()
+                # --------------------------------------------------
+                # HEALTHY / DISEASE CHECK
+                # --------------------------------------------------
 
+                if "healthy" in label.lower():
 
-                # Label
-                label = model.config.id2label[
-                    predicted_class
-                ]
+                    if language == "Tamil":
 
+                        st.success(
+                            "✅ செடி ஆரோக்கியமாக இருப்பது போல் தெரிகிறது."
+                        )
 
-                # Confidence
-                confidence = probabilities[
-                    0,
-                    predicted_class
-                ].item()
+                        st.write(
+                            "🌱 தொடர்ந்து செடியை கண்காணிக்கவும்."
+                        )
 
+                    else:
 
-            # =================================================
-            # RESULT
-            # =================================================
+                        st.success(
+                            "✅ The plant appears healthy."
+                        )
 
-            st.divider()
+                        st.write(
+                            "🌱 Continue regular monitoring."
+                        )
 
-            st.subheader(
-                "🌱 Analysis Result"
-            )
-
-
-            st.write(
-                f"**Detected Class:** {label}"
-            )
-
-
-            # =================================================
-            # HEALTHY
-            # =================================================
-
-            if "healthy" in label.lower():
-
-                if language == "Tamil":
-
-                    st.success(
-                        "✅ செடி ஆரோக்கியமாக இருப்பது போல் தெரிகிறது."
-                    )
-
-                    st.write(
-                        "🌱 தொடர்ந்து செடியை கண்காணிக்கவும்."
-                    )
 
                 else:
 
-                    st.success(
-                        "✅ The plant appears healthy."
-                    )
+                    if language == "Tamil":
 
-                    st.write(
-                        "🌱 Continue regular monitoring."
-                    )
+                        st.warning(
+                            "⚠️ செடியில் நோய் அறிகுறிகள் "
+                            "இருக்கலாம்."
+                        )
 
+                        st.write(
+                            "📋 வேளாண்மை நிபுணரிடம் பரிசோதனை "
+                            "செய்து உறுதி செய்யவும்."
+                        )
 
-            # =================================================
-            # DISEASE
-            # =================================================
+                    else:
 
-            else:
+                        st.warning(
+                            "⚠️ Possible disease symptoms detected."
+                        )
 
-                if language == "Tamil":
-
-                    st.warning(
-                        "⚠️ செடியில் நோய் அறிகுறிகள் "
-                        "இருக்கலாம்."
-                    )
-
-                    st.write(
-                        "📋 வேளாண்மை நிபுணரிடம் பரிசோதனை "
-                        "செய்து உறுதி செய்யவும்."
-                    )
-
-                else:
-
-                    st.warning(
-                        "⚠️ Possible disease symptoms detected."
-                    )
-
-                    st.write(
-                        "📋 Please consult an agricultural "
-                        "expert for confirmation."
-                    )
+                        st.write(
+                            "📋 Please consult an agricultural "
+                            "expert for confirmation."
+                        )
 
 
-            # =================================================
-            # CONFIDENCE
-            # =================================================
+                # --------------------------------------------------
+                # CONFIDENCE
+                # --------------------------------------------------
 
-            st.metric(
-                "Confidence / நம்பகத்தன்மை",
-                f"{confidence * 100:.2f}%"
-            )
-
-
-            # =================================================
-            # DISCLAIMER
-            # =================================================
-
-            st.info(
-                "📋 This AI result is a preliminary screening "
-                "only and is not a guaranteed diagnosis."
-            )
+                st.metric(
+                    "Confidence / நம்பகத்தன்மை",
+                    f"{confidence * 100:.2f}%"
+                )
 
 
-        except Exception as e:
+                # --------------------------------------------------
+                # DISCLAIMER
+                # --------------------------------------------------
 
-            st.error(
-                "❌ Analysis failed."
-            )
+                st.info(
+                    "📋 This is a preliminary AI screening only. "
+                    "It is not a guaranteed diagnosis."
+                )
 
-            st.exception(e)
 
+            except Exception as e:
+
+                st.error(
+                    "❌ Analysis failed."
+                )
+
+                st.exception(e)
+
+
+    except Exception as e:
+
+        st.error(
+            "❌ Unable to read the image."
+        )
+
+        st.exception(e)
+
+
+# --------------------------------------------------
+# NO IMAGE
+# --------------------------------------------------
 
 else:
 
@@ -385,54 +312,25 @@ else:
         "📷 Please upload or capture a crop image to begin."
     )
 
+What this version adds
 
-# ============================================================
-# PROJECT BENEFITS
-# ============================================================
+- 📷 Camera capture
+- 📁 Image upload
+- 🌱 Crop preview
+- 🔍 Analyze Crop button
+- 🇬🇧 English / 🇮🇳 Tamil
+- 🤖 ViT disease classification
+- 📊 Confidence percentage
+- ✅ Healthy detection
+- ⚠️ Disease detection
+- 📋 Preliminary-diagnosis disclaimer
 
-st.divider()
+Important: I also changed the healthy check from exact matching:
 
-st.subheader("🌾 Key Benefits")
+label.lower() == "healthy"
 
-col1, col2 = st.columns(2)
+to:
 
-with col1:
+"healthy" in label.lower()
 
-    st.write("📷 **Easy Access**")
-    st.write(
-        "Use a smartphone camera to capture crop images."
-    )
-
-    st.write("🤖 **AI-Based Screening**")
-    st.write(
-        "Automatically analyzes the uploaded crop image."
-    )
-
-with col2:
-
-    st.write("🌐 **Tamil Support**")
-    st.write(
-        "Provides results in English and Tamil."
-    )
-
-    st.write("⚡ **Quick Screening**")
-    st.write(
-        "Provides a preliminary result within seconds."
-    )
-
-
-# ============================================================
-# FOOTER
-# ============================================================
-
-st.divider()
-
-st.caption(
-    "🌱 Crop Doctor AI | AI-assisted preliminary plant-health screening"
-)
-
-Project flow
-
-Farmer → 📷 Camera/Upload → 🖼️ Crop Image → 🤖 ViT AI → 🔎 Disease Screening → 📊 Confidence → 👨‍🌾 Expert Confirmation
-
-This makes the app suitable for demonstrating the problem, proposed solution, working process, and actual AI implementation in a hackathon or college project.
+This handles labels such as "Tomato___healthy" as well.
