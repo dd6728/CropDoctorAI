@@ -1,5 +1,6 @@
 streamlit
+Pillow
 torch
 transformers
-torchvision
-pillow
+google-generativeai
+requests
