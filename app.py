@@ -377,4 +377,8 @@ st.markdown("""
   <h4>Impact</h4>
   <p>Faster first response for small farmers, fewer wrong or excessive pesticide sprays, and earlier expert escalation when symptoms are serious.</p>
   <h4>Tech stack</h4>
-  <p>Streamlit, PyTorch, Hugging Face Transformers (ViT), Gemini Vision, Open-Meteo
+  <p>Streamlit, PyTorch, Hugging Face Transformers (ViT), Gemini Vision, Open-Meteo, gTTS.</p>
+  <h4>Roadmap</h4>
+  <p>More Indian languages, offline mobile app, WhatsApp bot, district-level outbreak map, and integration with Kisan Call Centre (1800-180-1551).</p>
+</div>
+""", unsafe_allow_html=True)
